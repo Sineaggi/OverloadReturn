@@ -27,7 +27,7 @@ fun ByteArray.toBytecodeString(): String {
   val reader = ClassReader(this)
   val writer = StringWriter()
   reader.accept(TraceClassVisitor(PrintWriter(writer)), 0)
-  return writer.toString().trimEnd()
+  return writer.toString().substringAfter('\n').trimEnd()
 }
 
 fun Path.writeText(text: String, charset: Charset = UTF_8, vararg options: OpenOption) {

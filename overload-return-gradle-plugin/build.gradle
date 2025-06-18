@@ -1,12 +1,14 @@
-apply plugin: 'org.jetbrains.kotlin.jvm'
-apply plugin: 'java-gradle-plugin'
+plugins {
+  id 'org.jetbrains.kotlin.jvm'
+  id 'java-gradle-plugin'
+}
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 
 gradlePlugin {
   plugins {
-    overloadReturn {
+    register('overloadReturn') {
       id = 'com.jakewharton.overloadreturn'
       implementationClass = 'com.jakewharton.overloadreturn.gradle.OverloadReturnPlugin'
     }
@@ -24,4 +26,4 @@ dependencies {
   testImplementation deps.truth
 }
 
-apply from: rootProject.file('gradle/gradle-mvn-push.gradle')
+//apply from: rootProject.file('gradle/gradle-mvn-push.gradle')

@@ -1,6 +1,18 @@
-apply plugin: 'java-library'
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-sourceCompatibility = JavaVersion.VERSION_1_7
-targetCompatibility = JavaVersion.VERSION_1_7
+plugins {
+  id 'java-library'
+}
 
-apply from: rootProject.file('gradle/gradle-mvn-push.gradle')
+tasks.withType(JavaCompile).configureEach {
+  options.release = 8
+}
+
+tasks.withType(KotlinCompile).configureEach {
+  compilerOptions {
+    jvmTarget = JvmTarget.JVM_1_8
+  }
+}
+
+//apply from: rootProject.file('gradle/gradle-mvn-push.gradle')

@@ -1,10 +1,30 @@
-apply plugin: 'org.jetbrains.kotlin.jvm'
-apply plugin: 'application'
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8
+plugins {
+  id 'org.jetbrains.kotlin.jvm'
+  id 'application'
+}
 
-mainClassName = 'com.jakewharton.overloadreturn.compiler.Main'
+tasks.withType(JavaCompile).configureEach {
+  options.release = 8
+}
+
+tasks.withType(KotlinCompile).configureEach {
+  compilerOptions {
+    jvmTarget = JvmTarget.JVM_1_8
+  }
+}
+
+tasks.withType(Test).configureEach {
+  javaLauncher = javaToolchains.launcherFor {
+    languageVersion.set(JavaLanguageVersion.of(21))
+  }
+}
+
+application {
+    mainClass = 'com.jakewharton.overloadreturn.compiler.Main'
+}
 
 dependencies {
   implementation project(':overload-return-annotations')
@@ -18,9 +38,14 @@ dependencies {
   testImplementation deps.jimfs
 }
 
-distTar.enabled = false
-configurations.archives.artifacts.removeAll { it.file =~ 'tar' }
+tasks.named('distTar', Tar) {
+  enabled = false
+}
+
+configurations.named('archives') {
+  artifacts.removeAll { it.file =~ 'tar' }
+}
 
 assemble.dependsOn(installDist)
 
-apply from: rootProject.file('gradle/gradle-mvn-push.gradle')
+//apply from: rootProject.file('gradle/gradle-mvn-push.gradle')
