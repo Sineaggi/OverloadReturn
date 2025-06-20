@@ -14,6 +14,8 @@ import org.objectweb.asm.Opcodes.POP
 import org.objectweb.asm.Type
 import org.objectweb.asm.Type.VOID_TYPE
 import java.io.IOException
+import java.lang.classfile.ClassFile
+import java.lang.classfile.ClassModel
 import java.nio.file.FileVisitResult
 import java.nio.file.FileVisitResult.CONTINUE
 import java.nio.file.Files
@@ -25,8 +27,28 @@ class OverloadReturnCompiler @JvmOverloads constructor(
   val debug: Boolean = false
 ) {
   fun parse(bytes: ByteArray) : ClassInfo {
+    val asm = parseAsm(bytes)
+    val classFileApi = parseClassFileApi(bytes)
+
+    if (classFileApi.overloads != asm.overloads) {
+      throw IllegalStateException("ASM and ClassFile API parsing results differ: ${asm.overloads} != ${classFileApi.overloads}")
+    }
+
+    return classFileApi
+  }
+
+  internal fun parseAsm(bytes: ByteArray) : ClassInfo {
     val overloads = mutableListOf<ReturnOverload>()
     ClassReader(bytes).accept(ParsingClassVisitor(overloads, debug), 0)
+
+    return ClassInfo(bytes, overloads)
+  }
+
+  internal fun parseClassFileApi(bytes: ByteArray): ClassInfo {
+    val overloads = mutableListOf<ReturnOverload>()
+    val cf: ClassFile = ClassFile.of()
+    val classModel: ClassModel = cf.parse(bytes)
+    classModel.forEach(ClassElementVisitor(overloads, classModel, debug))
 
     return ClassInfo(bytes, overloads)
   }
@@ -62,16 +84,21 @@ data class ClassInfo(
       return originalBytes
     }
 
+    return toBytesAsm()
+  }
+
+  internal fun toBytesAsm(): ByteArray {
     val writer = ClassWriter(null, 0)
     val filteringVisitor = FilteringClassVisitor(writer)
     ClassReader(originalBytes).accept(filteringVisitor, 0)
 
     overloads.forEach { target ->
       val argumentTypes = Type.getArgumentTypes(target.descriptor)
-      val newDescriptor = Type.getMethodDescriptor(target.returnOverload, *argumentTypes)
+      val returnType = Type.getType(target.returnOverload)
+      val newDescriptor = Type.getMethodDescriptor(returnType, *argumentTypes)
 
       writer.visitMethod(target.access.withFlags(ACC_BRIDGE, ACC_SYNTHETIC), target.name,
-          newDescriptor, target.signature, target.exceptions).apply {
+          newDescriptor, target.signature, target.exceptions.takeIf { it.isNotEmpty() }?.toTypedArray()).apply {
         visitCode()
 
         var localIndex = 0
@@ -92,10 +119,10 @@ data class ClassInfo(
         val invoke = if (ACC_STATIC isFlagIn target.access) INVOKESTATIC else INVOKEVIRTUAL
         visitMethodInsn(invoke, target.owner, target.name, target.descriptor, false)
 
-        if (target.returnOverload == VOID_TYPE) {
+        if (returnType == VOID_TYPE) {
           visitInsn(POP)
         }
-        visitInsn(target.returnOverload.toReturnInstruction())
+        visitInsn(returnType.toReturnInstruction())
 
         // Since void is never the return type of the annotated target method, we always need at
         // least a stack size of 1.
@@ -108,15 +135,21 @@ data class ClassInfo(
 
     return writer.toByteArray()
   }
+
+  internal fun toBytesClassFileApi(): ByteArray {
+    val cf = ClassFile.of()
+    val classModel = cf.parse(originalBytes)
+
+    TODO()
+  }
 }
 
-@Suppress("ArrayInDataClass")
 data class ReturnOverload(
   val owner: String,
   val access: Int,
   val name: String,
   val descriptor: String,
   val signature: String?,
-  val exceptions: Array<out String>?,
-  val returnOverload: Type
+  val exceptions: List<String>,
+  val returnOverload: String
 )
