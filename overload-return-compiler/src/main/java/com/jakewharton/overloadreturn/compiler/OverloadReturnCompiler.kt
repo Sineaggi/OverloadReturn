@@ -14,8 +14,18 @@ import org.objectweb.asm.Opcodes.POP
 import org.objectweb.asm.Type
 import org.objectweb.asm.Type.VOID_TYPE
 import java.io.IOException
+import java.lang.classfile.ClassBuilder
 import java.lang.classfile.ClassFile
 import java.lang.classfile.ClassModel
+import java.lang.classfile.ClassTransform
+import java.lang.classfile.CodeBuilder
+import java.lang.classfile.MethodBuilder
+import java.lang.classfile.MethodElement
+import java.lang.classfile.Opcode
+import java.lang.classfile.attribute.RuntimeInvisibleAnnotationsAttribute
+import java.lang.constant.ClassDesc
+import java.lang.constant.MethodTypeDesc
+import java.lang.reflect.AccessFlag
 import java.nio.file.FileVisitResult
 import java.nio.file.FileVisitResult.CONTINUE
 import java.nio.file.Files
@@ -84,7 +94,7 @@ data class ClassInfo(
       return originalBytes
     }
 
-    return toBytesAsm()
+    return toBytesClassFileApi()
   }
 
   internal fun toBytesAsm(): ByteArray {
@@ -140,7 +150,81 @@ data class ClassInfo(
     val cf = ClassFile.of()
     val classModel = cf.parse(originalBytes)
 
-    TODO()
+    val annotationRemover = ClassTransform.transformingMethods { methodBuilder: MethodBuilder, methodElement: MethodElement ->
+      if (methodElement is RuntimeInvisibleAnnotationsAttribute) {
+        val annotations = methodElement.annotations().filter { !it.classSymbol().equals(classDesc) }
+        methodBuilder.accept(RuntimeInvisibleAnnotationsAttribute.of(annotations))
+      } else {
+        methodBuilder.accept(methodElement)
+      }
+    }
+
+    val overloadAdder = ClassTransform.endHandler { builder: ClassBuilder ->
+      overloads.forEach { target ->
+
+        MethodTypeDesc.ofDescriptor(target.descriptor)
+
+        val argumentTypes = Type.getArgumentTypes(target.descriptor)
+        val returnType = Type.getType(target.returnOverload)
+        val newDescriptor = Type.getMethodDescriptor(returnType, *argumentTypes)
+
+        //builder.withMethod(
+        //  target.name,
+        //  MethodTypeDesc.of(ClassDesc.ofDescriptor(target.returnOverload)),
+        //  target.access.withFlags(AccessFlag.BRIDGE.mask(), AccessFlag.SYNTHETIC.mask()),
+        //) { methodBuilder ->
+        //  //methodBuilder.accept()
+        //  methodBuilder.withCode {
+        //
+        //  }
+        //}
+        builder.withMethodBody(
+          target.name,
+          MethodTypeDesc.of(ClassDesc.ofDescriptor(target.returnOverload)),
+          target.access.withFlags(AccessFlag.BRIDGE.mask(), AccessFlag.SYNTHETIC.mask()),
+        ) { builder: CodeBuilder ->
+          /*
+          ALOAD 0
+          INVOKEVIRTUAL com/example/Test.method ()I
+          POP
+          RETURN
+          MAXSTACK = 1
+          MAXLOCALS = 1
+           */
+
+          var localIndex = 0
+
+          if (ACC_STATIC isNotFlagIn target.access) {
+            // builder(ALOAD, localIndex++)
+            builder.aload(localIndex++)
+          }
+          //for (argumentType in argumentTypes) {
+          //  val instruction = argumentType.toVarInstruction()
+          //  visitVarInsn(instruction, localIndex)
+//
+          //  localIndex += when (instruction) {
+          //    DLOAD, LLOAD -> 2
+          //    else -> 1
+          //  }
+          //}
+
+          val invoke =
+            if (AccessFlag.STATIC.mask() isFlagIn target.access) Opcode.INVOKESTATIC else Opcode.INVOKEVIRTUAL
+
+          builder.invoke(
+              invoke,
+              ClassDesc.ofInternalName(target.owner),
+              target.name,
+              MethodTypeDesc.ofDescriptor(target.descriptor),
+              false
+            )
+            .pop()
+            .return_()
+        }
+      }
+    }
+
+    return cf.transformClass(classModel, annotationRemover.andThen(overloadAdder) )
   }
 }
 
