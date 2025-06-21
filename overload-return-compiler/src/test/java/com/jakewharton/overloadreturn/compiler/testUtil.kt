@@ -17,6 +17,7 @@ import kotlin.text.Charsets.UTF_8
 fun compile(vararg input: JavaFileObject): List<JavaFileObject> {
   return Compiler.javac()
       .withClasspathFrom(OverloadReturn::class.java.classLoader)
+      .withOptions("--release=8")
       .compile(*input)
       .generatedFiles()
 }
@@ -27,7 +28,7 @@ fun ByteArray.toBytecodeString(): String {
   val reader = ClassReader(this)
   val writer = StringWriter()
   reader.accept(TraceClassVisitor(PrintWriter(writer)), 0)
-  return writer.toString().substringAfter('\n').trimEnd()
+  return writer.toString().trimEnd()
 }
 
 fun Path.writeText(text: String, charset: Charset = UTF_8, vararg options: OpenOption) {

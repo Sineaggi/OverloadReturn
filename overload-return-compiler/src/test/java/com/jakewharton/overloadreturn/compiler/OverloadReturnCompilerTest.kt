@@ -31,6 +31,7 @@ class OverloadReturnCompilerTest {
     val output = outputBytes.toBytecodeString()
 
     assertThat(output).isEqualTo("""
+      // class version 52.0 (52)
       // access flags 0x31
       public final class com/example/Test {
 
@@ -103,6 +104,7 @@ class OverloadReturnCompilerTest {
     val output = outputBytes.toBytecodeString()
 
     assertThat(output).isEqualTo("""
+      // class version 52.0 (52)
       // access flags 0x31
       public final class com/example/Test {
 
@@ -173,6 +175,7 @@ class OverloadReturnCompilerTest {
     val output = outputBytes.toBytecodeString()
 
     assertThat(output).isEqualTo("""
+      // class version 52.0 (52)
       // access flags 0x31
       public final class com/example/Test {
 
@@ -241,6 +244,7 @@ class OverloadReturnCompilerTest {
     val output = outputBytes.toBytecodeString()
 
     assertThat(output).isEqualTo("""
+      // class version 52.0 (52)
       // access flags 0x31
       public final class com/example/Test {
 
@@ -307,6 +311,7 @@ class OverloadReturnCompilerTest {
     val output = outputBytes.toBytecodeString()
 
     assertThat(output).isEqualTo("""
+      // class version 52.0 (52)
       // access flags 0x31
       public final class com/example/Test {
 
@@ -396,6 +401,7 @@ class OverloadReturnCompilerTest {
     val output = outputBytes.toBytecodeString()
 
     assertThat(output).isEqualTo("""
+      // class version 52.0 (52)
       // access flags 0x31
       public final class com/example/Test {
 
