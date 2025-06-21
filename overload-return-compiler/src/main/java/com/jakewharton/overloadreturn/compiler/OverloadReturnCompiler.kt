@@ -22,6 +22,7 @@ import java.lang.classfile.CodeBuilder
 import java.lang.classfile.MethodBuilder
 import java.lang.classfile.MethodElement
 import java.lang.classfile.Opcode
+import java.lang.classfile.TypeKind
 import java.lang.classfile.attribute.RuntimeInvisibleAnnotationsAttribute
 import java.lang.constant.ClassDesc
 import java.lang.constant.MethodTypeDesc
@@ -161,52 +162,29 @@ data class ClassInfo(
 
     val overloadAdder = ClassTransform.endHandler { builder: ClassBuilder ->
       overloads.forEach { target ->
+        val descriptor = MethodTypeDesc.ofDescriptor(target.descriptor)
+        val argumentTypes = descriptor.parameterList()
+        val returnType = TypeKind.from(ClassDesc.ofDescriptor(target.returnOverload))
 
-        MethodTypeDesc.ofDescriptor(target.descriptor)
-
-        val argumentTypes = Type.getArgumentTypes(target.descriptor)
-        val returnType = Type.getType(target.returnOverload)
-        val newDescriptor = Type.getMethodDescriptor(returnType, *argumentTypes)
-
-        //builder.withMethod(
-        //  target.name,
-        //  MethodTypeDesc.of(ClassDesc.ofDescriptor(target.returnOverload)),
-        //  target.access.withFlags(AccessFlag.BRIDGE.mask(), AccessFlag.SYNTHETIC.mask()),
-        //) { methodBuilder ->
-        //  //methodBuilder.accept()
-        //  methodBuilder.withCode {
-        //
-        //  }
-        //}
         builder.withMethodBody(
           target.name,
-          MethodTypeDesc.of(ClassDesc.ofDescriptor(target.returnOverload)),
+          MethodTypeDesc.of(ClassDesc.ofDescriptor(target.returnOverload), argumentTypes),
           target.access.withFlags(AccessFlag.BRIDGE.mask(), AccessFlag.SYNTHETIC.mask()),
         ) { builder: CodeBuilder ->
-          /*
-          ALOAD 0
-          INVOKEVIRTUAL com/example/Test.method ()I
-          POP
-          RETURN
-          MAXSTACK = 1
-          MAXLOCALS = 1
-           */
-
           var localIndex = 0
 
-          if (ACC_STATIC isNotFlagIn target.access) {
-            // builder(ALOAD, localIndex++)
+          if (AccessFlag.STATIC.mask() isNotFlagIn target.access) {
             builder.aload(localIndex++)
           }
-          //for (argumentType in argumentTypes) {
-          //  val instruction = argumentType.toVarInstruction()
-          //  visitVarInsn(instruction, localIndex)
-//
-          //  localIndex += when (instruction) {
-          //    DLOAD, LLOAD -> 2
-          //    else -> 1
-          //  }
-          //}
+          for (argumentType in descriptor.parameterList()) {
+            val instruction = TypeKind.from(argumentType)
+            builder.loadLocal(instruction, localIndex)
+
+            localIndex += when (instruction) {
+              TypeKind.DOUBLE, TypeKind.LONG -> 2
+              else -> 1
+            }
+          }
 
           val invoke =
             if (AccessFlag.STATIC.mask() isFlagIn target.access) Opcode.INVOKESTATIC else Opcode.INVOKEVIRTUAL
@@ -215,11 +193,14 @@ data class ClassInfo(
               invoke,
               ClassDesc.ofInternalName(target.owner),
               target.name,
-              MethodTypeDesc.ofDescriptor(target.descriptor),
+              descriptor,
               false
             )
-            .pop()
-            .return_()
+
+          if (returnType == TypeKind.VOID) {
+            builder.pop()
+          }
+          builder.return_(returnType)
         }
       }
     }
