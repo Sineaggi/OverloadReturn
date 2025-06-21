@@ -36,6 +36,7 @@ dependencies {
   testImplementation deps.compileTesting
   testImplementation deps.asmUtil
   testImplementation deps.jimfs
+  testImplementation deps.guava
 }
 
 tasks.named('distTar', Tar) {
