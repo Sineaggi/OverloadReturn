@@ -37,7 +37,7 @@ import java.nio.file.attribute.BasicFileAttributes
 class OverloadReturnCompiler @JvmOverloads constructor(
   val debug: Boolean = false
 ) {
-  fun parse(bytes: ByteArray) : ClassInfo {
+  fun parse(bytes: ByteArray): ClassInfo {
     val asm = parseAsm(bytes)
     val classFileApi = parseClassFileApi(bytes)
 
@@ -48,7 +48,7 @@ class OverloadReturnCompiler @JvmOverloads constructor(
     return classFileApi
   }
 
-  internal fun parseAsm(bytes: ByteArray) : ClassInfo {
+  internal fun parseAsm(bytes: ByteArray): ClassInfo {
     val overloads = mutableListOf<ReturnOverload>()
     ClassReader(bytes).accept(ParsingClassVisitor(overloads, debug), 0)
 
@@ -108,8 +108,10 @@ data class ClassInfo(
       val returnType = Type.getType(target.returnOverload)
       val newDescriptor = Type.getMethodDescriptor(returnType, *argumentTypes)
 
-      writer.visitMethod(target.access.withFlags(ACC_BRIDGE, ACC_SYNTHETIC), target.name,
-          newDescriptor, target.signature, target.exceptions.takeIf { it.isNotEmpty() }?.toTypedArray()).apply {
+      writer.visitMethod(
+        target.access.withFlags(ACC_BRIDGE, ACC_SYNTHETIC), target.name,
+        newDescriptor, target.signature, target.exceptions.takeIf { it.isNotEmpty() }?.toTypedArray()
+      ).apply {
         visitCode()
 
         var localIndex = 0
@@ -151,14 +153,15 @@ data class ClassInfo(
     val cf = ClassFile.of()
     val classModel = cf.parse(originalBytes)
 
-    val annotationRemover = ClassTransform.transformingMethods { methodBuilder: MethodBuilder, methodElement: MethodElement ->
-      if (methodElement is RuntimeInvisibleAnnotationsAttribute) {
-        val annotations = methodElement.annotations().filter { !it.classSymbol().equals(classDesc) }
-        methodBuilder.accept(RuntimeInvisibleAnnotationsAttribute.of(annotations))
-      } else {
-        methodBuilder.accept(methodElement)
+    val annotationRemover =
+      ClassTransform.transformingMethods { methodBuilder: MethodBuilder, methodElement: MethodElement ->
+        if (methodElement is RuntimeInvisibleAnnotationsAttribute) {
+          val annotations = methodElement.annotations().filter { !it.classSymbol().equals(classDesc) }
+          methodBuilder.accept(RuntimeInvisibleAnnotationsAttribute.of(annotations))
+        } else {
+          methodBuilder.accept(methodElement)
+        }
       }
-    }
 
     val overloadAdder = ClassTransform.endHandler { builder: ClassBuilder ->
       overloads.forEach { target ->
@@ -190,12 +193,12 @@ data class ClassInfo(
             if (AccessFlag.STATIC.mask() isFlagIn target.access) Opcode.INVOKESTATIC else Opcode.INVOKEVIRTUAL
 
           builder.invoke(
-              invoke,
-              ClassDesc.ofInternalName(target.owner),
-              target.name,
-              descriptor,
-              false
-            )
+            invoke,
+            ClassDesc.ofInternalName(target.owner),
+            target.name,
+            descriptor,
+            false
+          )
 
           if (returnType == TypeKind.VOID) {
             builder.pop()
@@ -205,7 +208,7 @@ data class ClassInfo(
       }
     }
 
-    return cf.transformClass(classModel, annotationRemover.andThen(overloadAdder) )
+    return cf.transformClass(classModel, annotationRemover.andThen(overloadAdder))
   }
 }
 
