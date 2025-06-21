@@ -29,6 +29,5 @@ subprojects {
   repositories {
     mavenCentral()
     google()
-    //jcenter() // TODO Update to Gradle 5.1 and limit this to org.jetbrains.trove4j:trove4j
   }
 }
