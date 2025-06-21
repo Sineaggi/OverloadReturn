@@ -167,11 +167,12 @@ data class ClassInfo(
       overloads.forEach { target ->
         val descriptor = MethodTypeDesc.ofDescriptor(target.descriptor)
         val argumentTypes = descriptor.parameterList()
-        val returnType = TypeKind.from(ClassDesc.ofDescriptor(target.returnOverload))
+        val returnClass = ClassDesc.ofDescriptor(target.returnOverload)
+        val returnType = TypeKind.from(returnClass)
 
         builder.withMethodBody(
           target.name,
-          MethodTypeDesc.of(ClassDesc.ofDescriptor(target.returnOverload), argumentTypes),
+          MethodTypeDesc.of(returnClass, argumentTypes),
           target.access.withFlags(AccessFlag.BRIDGE.mask(), AccessFlag.SYNTHETIC.mask()),
         ) { builder: CodeBuilder ->
           var localIndex = 0
