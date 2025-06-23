@@ -6,19 +6,19 @@ plugins {
   id 'application'
 }
 
-tasks.withType(JavaCompile).configureEach {
-  options.release = 8
+kotlin {
+    jvmToolchain(24)
+}
+
+java {
+  toolchain {
+    languageVersion.set(JavaLanguageVersion.of(24))
+  }
 }
 
 tasks.withType(KotlinCompile).configureEach {
   compilerOptions {
-    jvmTarget = JvmTarget.JVM_1_8
-  }
-}
-
-tasks.withType(Test).configureEach {
-  javaLauncher = javaToolchains.launcherFor {
-    languageVersion.set(JavaLanguageVersion.of(21))
+    jvmTarget = JvmTarget.JVM_24
   }
 }
 

@@ -6,6 +6,7 @@ import com.android.build.api.transform.QualifiedContent.DefaultContentType.CLASS
 import com.android.build.api.transform.QualifiedContent.Scope.PROJECT
 import com.android.build.api.transform.Status.ADDED
 import com.android.build.api.transform.Status.CHANGED
+import com.android.build.api.transform.Status.NOTCHANGED
 import com.android.build.api.transform.Status.REMOVED
 import com.android.build.api.transform.Transform
 import com.android.build.api.transform.TransformInvocation
@@ -42,6 +43,7 @@ internal class OverloadReturnTransform : Transform() {
             val relativeFile = file.relativeTo(directory.file)
             val outputFile = outputFileRoot.resolve(relativeFile)
             when (status) {
+              NOTCHANGED -> TODO()
               ADDED, CHANGED -> {
                 val inputBytes = file.readBytes()
                 val outputBytes = compiler.parse(inputBytes).toBytes()
@@ -62,11 +64,12 @@ internal class OverloadReturnTransform : Transform() {
         System.err.println("JAR: ${jar.status} ${jar.file} $outputJar incremental: ${invocation.isIncremental}")
 
         when (jar.status) {
+          NOTCHANGED -> TODO()
           ADDED, CHANGED -> {
             outputJar.delete()
             val outputUri = URI("jar:file", outputJar.toURI().path, null)
             FileSystems.newFileSystem(outputUri, mapOf("create" to "true"), null).use { outputFs ->
-              FileSystems.newFileSystem(jar.file.toPath(), null).use { inputFs ->
+              FileSystems.newFileSystem(jar.file.toPath(), null as? ClassLoader).use { inputFs ->
                 val inputRoot = inputFs.rootDirectories.single()
                 val outputRoot = outputFs.rootDirectories.single()
                 compiler.processDirectory(inputRoot, outputRoot)

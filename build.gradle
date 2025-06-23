@@ -11,7 +11,7 @@ buildscript {
       'junit': 'junit:junit:4.13.2',
       'compileTesting': 'com.google.testing.compile:compile-testing:0.21.0',
       'truth': 'com.google.truth:truth:1.4.4',
-      'androidGradlePlugin': 'com.android.tools.build:gradle:3.2.1',
+      'androidGradlePlugin': 'com.android.tools.build:gradle:8.10.1',
       'jimfs': 'com.google.jimfs:jimfs:1.3.0',
       'guava': 'com.google.guava:guava:33.4.8-jre',
   ]
@@ -22,12 +22,5 @@ buildscript {
 
   dependencies {
     classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlin}"
-  }
-}
-
-subprojects {
-  repositories {
-    mavenCentral()
-    google()
   }
 }

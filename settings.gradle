@@ -1,3 +1,10 @@
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        google()
+    }
+}
+
 include ':overload-return-compiler'
 include ':overload-return-annotations'
 include ':overload-return-gradle-plugin'
